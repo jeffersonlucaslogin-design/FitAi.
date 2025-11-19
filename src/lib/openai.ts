@@ -10,14 +10,17 @@ export async function analyzeFoodImage(imageUrl: string) {
       body: JSON.stringify({ imageUrl }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Erro ao analisar imagem');
+      // Retorna a mensagem de erro específica da API
+      throw new Error(data.error || 'Erro ao analisar imagem');
     }
 
-    return await response.json();
-  } catch (error) {
+    return data;
+  } catch (error: any) {
     console.error('Erro ao analisar imagem:', error);
-    throw error;
+    throw new Error(error.message || 'Erro ao analisar imagem');
   }
 }
 
@@ -31,14 +34,16 @@ export async function generateWeeklyNutritionPlan(profile: any) {
       body: JSON.stringify({ profile, type: 'weekly' }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Erro ao gerar plano nutricional');
+      throw new Error(data.error || 'Erro ao gerar plano nutricional');
     }
 
-    return await response.json();
-  } catch (error) {
+    return data;
+  } catch (error: any) {
     console.error('Erro ao gerar plano nutricional semanal:', error);
-    throw error;
+    throw new Error(error.message || 'Erro ao gerar plano nutricional semanal');
   }
 }
 
@@ -52,14 +57,16 @@ export async function generateNutritionPlan(profile: any) {
       body: JSON.stringify({ profile, type: 'daily' }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Erro ao gerar plano nutricional');
+      throw new Error(data.error || 'Erro ao gerar plano nutricional');
     }
 
-    return await response.json();
-  } catch (error) {
+    return data;
+  } catch (error: any) {
     console.error('Erro ao gerar plano nutricional:', error);
-    throw error;
+    throw new Error(error.message || 'Erro ao gerar plano nutricional');
   }
 }
 
@@ -73,13 +80,15 @@ export async function generateWorkoutPlan(profile: any, type: 'home' | 'gym') {
       body: JSON.stringify({ profile, type }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error('Erro ao gerar treino');
+      throw new Error(data.error || 'Erro ao gerar treino');
     }
 
-    return await response.json();
-  } catch (error) {
+    return data;
+  } catch (error: any) {
     console.error('Erro ao gerar treino:', error);
-    throw error;
+    throw new Error(error.message || 'Erro ao gerar treino');
   }
 }

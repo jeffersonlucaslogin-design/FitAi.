@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Camera, Utensils, Dumbbell, TrendingUp, User, LogOut } from 'lucide-react';
+import { Home, Utensils, Dumbbell, TrendingUp, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -14,7 +14,6 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
 
   const tabs = [
     { id: 'home', label: 'Início', icon: Home },
-    { id: 'analyze', label: 'Analisar', icon: Camera },
     { id: 'nutrition', label: 'Nutrição', icon: Utensils },
     { id: 'workout', label: 'Treino', icon: Dumbbell },
     { id: 'progress', label: 'Progresso', icon: TrendingUp },

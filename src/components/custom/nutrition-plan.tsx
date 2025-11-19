@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Utensils, Loader2, Clock, Flame, Calendar, Droplets, Pill, ChevronDown, ChevronUp } from 'lucide-react';
+import { Utensils, Loader2, Clock, Flame, Calendar, Droplets, Pill, ChevronDown, ChevronUp, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateWeeklyNutritionPlan } from '@/lib/openai';
@@ -15,6 +15,7 @@ export default function NutritionPlanComponent({ profile }: NutritionPlanProps) 
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<WeeklyNutritionPlan | null>(null);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -34,6 +35,10 @@ export default function NutritionPlanComponent({ profile }: NutritionPlanProps) 
     setExpandedDay(expandedDay === dayNumber ? null : dayNumber);
   };
 
+  const toggleMeal = (mealId: string) => {
+    setExpandedMeal(expandedMeal === mealId ? null : mealId);
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-emerald-200 shadow-lg">
@@ -43,7 +48,7 @@ export default function NutritionPlanComponent({ profile }: NutritionPlanProps) 
             Dieta Semanal Personalizada
           </CardTitle>
           <CardDescription>
-            Plano nutricional completo para 7 dias focado em perda de peso saudável
+            Plano nutricional completo para 7 dias com receitas detalhadas e passo a passo
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -67,8 +72,8 @@ export default function NutritionPlanComponent({ profile }: NutritionPlanProps) 
                     <p className="text-gray-600">Perda de peso</p>
                   </div>
                   <div className="bg-white/60 p-3 rounded-lg">
-                    <p className="font-semibold text-emerald-700">Nutrientes</p>
-                    <p className="text-gray-600">Dieta balanceada</p>
+                    <p className="font-semibold text-emerald-700">Receitas</p>
+                    <p className="text-gray-600">Passo a passo</p>
                   </div>
                   <div className="bg-white/60 p-3 rounded-lg">
                     <p className="font-semibold text-emerald-700">Variedade</p>
@@ -183,30 +188,111 @@ export default function NutritionPlanComponent({ profile }: NutritionPlanProps) 
                     
                     {expandedDay === dayPlan.dayNumber && (
                       <div className="p-4 space-y-3 bg-white">
-                        {dayPlan.meals.map((meal, mealIdx) => (
-                          <div key={mealIdx} className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-emerald-600" />
-                                <h4 className="font-semibold text-gray-800">{meal.name}</h4>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600 font-medium">{meal.time}</span>
-                                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
-                                  {meal.calories} kcal
-                                </span>
+                        {dayPlan.meals.map((meal, mealIdx) => {
+                          const mealId = `${dayPlan.dayNumber}-${mealIdx}`;
+                          return (
+                            <div key={mealIdx} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden">
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-emerald-600" />
+                                    <h4 className="font-semibold text-gray-800">{meal.type}</h4>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600 font-medium">{meal.time}</span>
+                                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                                      {meal.calories} kcal
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <div className="bg-white p-4 rounded-lg mb-3 border border-emerald-200">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <ChefHat className="w-5 h-5 text-emerald-600" />
+                                    <h5 className="font-bold text-emerald-800">{meal.name}</h5>
+                                  </div>
+                                  {meal.prepTime && (
+                                    <p className="text-sm text-gray-600 mb-2">
+                                      ⏱️ Tempo de preparo: <span className="font-semibold">{meal.prepTime}</span>
+                                    </p>
+                                  )}
+                                  
+                                  {/* Macros */}
+                                  {meal.macros && (
+                                    <div className="flex gap-3 mb-3">
+                                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">
+                                        P: {meal.macros.protein}g
+                                      </span>
+                                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-semibold">
+                                        C: {meal.macros.carbs}g
+                                      </span>
+                                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-semibold">
+                                        G: {meal.macros.fat}g
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    onClick={() => toggleMeal(mealId)}
+                                    className="text-sm text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
+                                  >
+                                    {expandedMeal === mealId ? (
+                                      <>
+                                        <ChevronUp className="w-4 h-4" />
+                                        Ocultar receita
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="w-4 h-4" />
+                                        Ver receita completa
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+
+                                {expandedMeal === mealId && (
+                                  <div className="space-y-4 bg-white p-4 rounded-lg border border-gray-200">
+                                    {/* Ingredientes */}
+                                    {meal.ingredients && meal.ingredients.length > 0 && (
+                                      <div>
+                                        <h6 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                          🛒 Ingredientes:
+                                        </h6>
+                                        <ul className="space-y-1">
+                                          {meal.ingredients.map((ingredient, idx) => (
+                                            <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full flex-shrink-0"></span>
+                                              <span>{ingredient}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    {/* Modo de Preparo */}
+                                    {meal.steps && meal.steps.length > 0 && (
+                                      <div>
+                                        <h6 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                          👨‍🍳 Modo de Preparo:
+                                        </h6>
+                                        <ol className="space-y-2">
+                                          {meal.steps.map((step, idx) => (
+                                            <li key={idx} className="text-sm text-gray-700 flex items-start gap-3">
+                                              <span className="bg-emerald-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                                                {idx + 1}
+                                              </span>
+                                              <span className="flex-1">{step}</span>
+                                            </li>
+                                          ))}
+                                        </ol>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            <ul className="space-y-2">
-                              {meal.foods.map((food, foodIdx) => (
-                                <li key={foodIdx} className="text-sm text-gray-700 flex items-center gap-2">
-                                  <span className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></span>
-                                  <span>{food}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
+                          );
+                        })}
                         <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
                           <p className="text-sm font-semibold text-emerald-800">
                             Total do dia: {dayPlan.meals.reduce((sum, meal) => sum + meal.calories, 0)} kcal

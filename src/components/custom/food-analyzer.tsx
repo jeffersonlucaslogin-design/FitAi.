@@ -23,6 +23,7 @@ export default function FoodAnalyzer() {
       
       setAnalyzing(true);
       try {
+        // Envia a imagem em base64 (data URL) para a API
         const analysis = await analyzeFoodImage(base64);
         
         if (analysis && analysis.foods) {
@@ -40,9 +41,10 @@ export default function FoodAnalyzer() {
             timestamp: new Date()
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro na análise:', error);
-        alert('Erro ao analisar imagem. Verifique sua chave da OpenAI.');
+        const errorMessage = error.message || 'Erro ao analisar imagem. Tente novamente.';
+        alert(errorMessage);
       } finally {
         setAnalyzing(false);
       }
@@ -64,8 +66,8 @@ export default function FoodAnalyzer() {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4">
-            <label htmlFor="food-image" className="cursor-pointer">
-              <div className="w-full max-w-md h-64 border-2 border-dashed border-emerald-300 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all">
+            <label htmlFor="food-image" className="cursor-pointer w-full">
+              <div className="w-full max-w-md mx-auto h-64 border-2 border-dashed border-emerald-300 rounded-2xl flex flex-col items-center justify-center gap-4 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all">
                 {imagePreview ? (
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-2xl" />
                 ) : (
@@ -108,7 +110,7 @@ export default function FoodAnalyzer() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-4 rounded-xl text-center">
                 <p className="text-sm text-orange-700 font-medium">Calorias</p>
-                <p className="text-2xl font-bold text-orange-800">{result.totalCalories}</p>
+                <p className="text-2xl font-bold text-orange-800">{Math.round(result.totalCalories)}</p>
                 <p className="text-xs text-orange-600">kcal</p>
               </div>
               <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-xl text-center">
@@ -140,27 +142,33 @@ export default function FoodAnalyzer() {
                   <div className="grid grid-cols-4 gap-2 text-sm">
                     <div>
                       <p className="text-gray-500">Cal</p>
-                      <p className="font-medium">{food.calories}</p>
+                      <p className="font-medium">{Math.round(food.calories)}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Prot</p>
-                      <p className="font-medium">{food.protein}g</p>
+                      <p className="font-medium">{food.protein.toFixed(1)}g</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Carb</p>
-                      <p className="font-medium">{food.carbs}g</p>
+                      <p className="font-medium">{food.carbs.toFixed(1)}g</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Gord</p>
-                      <p className="font-medium">{food.fat}g</p>
+                      <p className="font-medium">{food.fat.toFixed(1)}g</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <Button className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
-              Salvar Refeição
+            <Button 
+              onClick={() => {
+                setResult(null);
+                setImagePreview('');
+              }}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+            >
+              Analisar Nova Foto
             </Button>
           </CardContent>
         </Card>

@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/custom/navbar';
-import FoodAnalyzer from '@/components/custom/food-analyzer';
 import UserProfileComponent from '@/components/custom/user-profile';
 import NutritionPlanComponent from '@/components/custom/nutrition-plan';
 import WorkoutGenerator from '@/components/custom/workout-generator';
 import ProgressDashboard from '@/components/custom/progress-dashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Utensils, Dumbbell, TrendingUp, Sparkles } from 'lucide-react';
+import { Utensils, Dumbbell, TrendingUp, Sparkles } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 
 export default function FitIAApp() {
@@ -85,19 +84,7 @@ export default function FitIAApp() {
             </Card>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="border-emerald-200 shadow-lg hover:shadow-xl transition-all cursor-pointer" onClick={() => setActiveTab('analyze')}>
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
-                  <CardTitle className="flex items-center gap-2 text-emerald-700">
-                    <Camera className="w-6 h-6" />
-                    Análise de Alimentos
-                  </CardTitle>
-                  <CardDescription>
-                    Tire uma foto e descubra as calorias e nutrientes
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="border-orange-200 shadow-lg hover:shadow-xl transition-all cursor-pointer" onClick={() => setActiveTab('nutrition')}>
                 <CardHeader className="bg-gradient-to-r from-orange-50 to-yellow-50">
                   <CardTitle className="flex items-center gap-2 text-orange-700">
@@ -166,11 +153,11 @@ export default function FitIAApp() {
                     </li>
                     <li className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">2</span>
-                      <span className="text-gray-700">Tire fotos das suas refeições para análise automática</span>
+                      <span className="text-gray-700">Receba planos alimentares personalizados</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">3</span>
-                      <span className="text-gray-700">Receba planos alimentares e treinos personalizados</span>
+                      <span className="text-gray-700">Obtenha treinos personalizados para seus objetivos</span>
                     </li>
                     <li className="flex items-start gap-3">
                       <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">4</span>
@@ -186,10 +173,6 @@ export default function FitIAApp() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    <li className="flex items-center gap-3">
-                      <Camera className="w-5 h-5 text-emerald-600" />
-                      <span className="text-gray-700">Análise de alimentos por IA</span>
-                    </li>
                     <li className="flex items-center gap-3">
                       <Utensils className="w-5 h-5 text-orange-600" />
                       <span className="text-gray-700">Planos nutricionais personalizados</span>
@@ -209,7 +192,6 @@ export default function FitIAApp() {
           </div>
         )}
 
-        {activeTab === 'analyze' && <FoodAnalyzer />}
         {activeTab === 'nutrition' && <NutritionPlanComponent profile={userProfile} />}
         {activeTab === 'workout' && <WorkoutGenerator profile={userProfile} />}
         {activeTab === 'progress' && <ProgressDashboard profile={userProfile} />}
