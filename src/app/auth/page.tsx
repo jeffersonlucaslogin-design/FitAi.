@@ -2,270 +2,275 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sparkles, Mail, Lock, User, Calendar, Weight, Ruler, Target, Activity } from 'lucide-react';
-import type { UserProfile } from '@/lib/types';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sparkles, Mail, Lock, User } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [profile, setProfile] = useState<UserProfile>({
-    name: '',
-    age: 25,
-    gender: 'male',
-    weight: 70,
-    height: 170,
-    activityLevel: 'moderate',
-    goal: 'maintain',
-    targetWeight: 70,
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+
+  // Cadastro state
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (isLogin) {
-      // Simula login
-      if (email && password) {
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userProfile', JSON.stringify(profile));
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
         router.push('/');
+        router.refresh();
       }
-    } else {
-      // Simula cadastro
-      if (email && password && profile.name) {
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userProfile', JSON.stringify(profile));
-        alert('Cadastro realizado com sucesso!');
-        router.push('/');
-      } else {
-        alert('Preencha todos os campos obrigatórios');
+    } catch (err: any) {
+      console.error('Erro no login:', err);
+      setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    if (signupPassword !== signupConfirmPassword) {
+      setError('As senhas não coincidem');
+      setIsLoading(false);
+      return;
+    }
+
+    if (signupPassword.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Criar usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          data: {
+            name: signupName,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Tentar criar perfil (se tabela existir)
+        try {
+          await supabase.from('user_profiles').insert([
+            {
+              user_id: authData.user.id,
+              name: signupName,
+              age: 25,
+              gender: 'male',
+              weight: 75,
+              height: 175,
+              activity_level: 'moderate',
+              goal: 'maintain',
+              target_weight: 75,
+            },
+          ]);
+        } catch (profileErr) {
+          console.log('Perfil será criado posteriormente');
+        }
+
+        setError('Conta criada! Verifique seu email para confirmar.');
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 2000);
       }
+    } catch (err: any) {
+      console.error('Erro no cadastro:', err);
+      setError(err.message || 'Erro ao criar conta. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-2xl border-none">
-        <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-lg">
+      <Card className="w-full max-w-md shadow-2xl border-none">
+        <CardHeader className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="w-8 h-8" />
-            <CardTitle className="text-3xl">FitIA</CardTitle>
+            <Sparkles className="w-8 h-8 text-emerald-600" />
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              FitIA
+            </CardTitle>
           </div>
-          <CardDescription className="text-white/90 text-center">
-            {isLogin ? 'Entre na sua conta' : 'Crie sua conta e configure seu perfil'}
+          <CardDescription className="text-base">
+            Seu assistente inteligente de fitness e nutrição
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Credenciais */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-emerald-600" />
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="border-emerald-200 focus:border-emerald-500"
-                />
-              </div>
+        <CardContent>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+            </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-600" />
-                  Senha
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="border-emerald-200 focus:border-emerald-500"
-                />
-              </div>
-            </div>
-
-            {/* Perfil (apenas no cadastro) */}
-            {!isLogin && (
-              <div className="space-y-4 pt-4 border-t border-gray-200">
-                <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-                  <User className="w-5 h-5 text-emerald-600" />
-                  Configure seu Perfil
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo</Label>
-                    <Input
-                      id="name"
-                      placeholder="Seu nome"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      required
-                      className="border-emerald-200"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="age" className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      Idade
-                    </Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      min="10"
-                      max="120"
-                      value={profile.age}
-                      onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) })}
-                      className="border-emerald-200"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Sexo</Label>
-                    <Select
-                      value={profile.gender}
-                      onValueChange={(value: 'male' | 'female') => setProfile({ ...profile, gender: value })}
-                    >
-                      <SelectTrigger className="border-emerald-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Masculino</SelectItem>
-                        <SelectItem value="female">Feminino</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="weight" className="flex items-center gap-2">
-                      <Weight className="w-4 h-4 text-orange-600" />
-                      Peso (kg)
-                    </Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      min="30"
-                      max="300"
-                      value={profile.weight}
-                      onChange={(e) => setProfile({ ...profile, weight: parseFloat(e.target.value) })}
-                      className="border-emerald-200"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="height" className="flex items-center gap-2">
-                      <Ruler className="w-4 h-4 text-purple-600" />
-                      Altura (cm)
-                    </Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      min="100"
-                      max="250"
-                      value={profile.height}
-                      onChange={(e) => setProfile({ ...profile, height: parseFloat(e.target.value) })}
-                      className="border-emerald-200"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="targetWeight" className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-pink-600" />
-                      Peso Alvo (kg)
-                    </Label>
-                    <Input
-                      id="targetWeight"
-                      type="number"
-                      min="30"
-                      max="300"
-                      value={profile.targetWeight}
-                      onChange={(e) => setProfile({ ...profile, targetWeight: parseFloat(e.target.value) })}
-                      className="border-emerald-200"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="activityLevel" className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-teal-600" />
-                      Nível de Atividade
-                    </Label>
-                    <Select
-                      value={profile.activityLevel}
-                      onValueChange={(value: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active') =>
-                        setProfile({ ...profile, activityLevel: value })
-                      }
-                    >
-                      <SelectTrigger className="border-emerald-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sedentary">Sedentário</SelectItem>
-                        <SelectItem value="light">Levemente Ativo</SelectItem>
-                        <SelectItem value="moderate">Moderadamente Ativo</SelectItem>
-                        <SelectItem value="active">Muito Ativo</SelectItem>
-                        <SelectItem value="very_active">Extremamente Ativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="goal">Objetivo</Label>
-                    <Select
-                      value={profile.goal}
-                      onValueChange={(value: 'lose' | 'maintain' | 'gain') =>
-                        setProfile({ ...profile, goal: value })
-                      }
-                    >
-                      <SelectTrigger className="border-emerald-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lose">Perder Peso</SelectItem>
-                        <SelectItem value="maintain">Manter Peso</SelectItem>
-                        <SelectItem value="gain">Ganhar Peso</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            {/* Login Tab */}
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
-              </div>
-            )}
 
-            {/* Botões */}
-            <div className="space-y-4">
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-6 text-lg"
-              >
-                {isLogin ? 'Entrar' : 'Criar Conta'}
-              </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password" className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Senha
+                  </Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
 
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-emerald-600 hover:text-emerald-700 font-medium"
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                  disabled={isLoading}
                 >
-                  {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-                </button>
-              </div>
-            </div>
-          </form>
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </form>
+            </TabsContent>
+
+            {/* Signup Tab */}
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Nome
+                  </Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Seu nome"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password" className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Senha
+                  </Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm-password" className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Confirmar Senha
+                  </Label>
+                  <Input
+                    id="signup-confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {error && (
+                  <div className={`${error.includes('criada') ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'} px-4 py-3 rounded-lg text-sm border`}>
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Criando conta...' : 'Criar conta'}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/custom/navbar';
 import UserProfileComponent from '@/components/custom/user-profile';
 import NutritionPlanComponent from '@/components/custom/nutrition-plan';
@@ -15,6 +16,7 @@ export default function FitIAApp() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('home');
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     name: 'Usuário',
     age: 25,
@@ -27,24 +29,109 @@ export default function FitIAApp() {
   });
 
   useEffect(() => {
-    // Verifica se usuário está logado
-    const userEmail = localStorage.getItem('userEmail');
-    const savedProfile = localStorage.getItem('userProfile');
+    checkAuth();
+  }, []);
 
-    if (!userEmail) {
-      router.push('/auth');
-    } else {
-      if (savedProfile) {
-        setUserProfile(JSON.parse(savedProfile));
+  const checkAuth = async () => {
+    try {
+      // Verificar se usuário está autenticado
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        router.push('/auth');
+        return;
       }
-      setIsLoading(false);
-    }
-  }, [router]);
 
-  const handleSaveProfile = (profile: UserProfile) => {
-    setUserProfile(profile);
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-    alert('Perfil salvo com sucesso!');
+      setUserId(session.user.id);
+
+      // Tentar carregar perfil do usuário do Supabase
+      try {
+        const { data: profileData, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!error && profileData) {
+          setUserProfile({
+            name: profileData.name || session.user.user_metadata?.name || 'Usuário',
+            age: profileData.age,
+            gender: profileData.gender,
+            weight: profileData.weight,
+            height: profileData.height,
+            activityLevel: profileData.activity_level,
+            goal: profileData.goal,
+            targetWeight: profileData.target_weight,
+          });
+        } else {
+          // Se não tem perfil, usar dados do metadata ou criar perfil padrão
+          const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário';
+          setUserProfile(prev => ({ ...prev, name: userName }));
+          
+          // Tentar criar perfil inicial
+          try {
+            await supabase.from('user_profiles').insert([{
+              user_id: session.user.id,
+              name: userName,
+              age: 25,
+              gender: 'male',
+              weight: 75,
+              height: 175,
+              activity_level: 'moderate',
+              goal: 'maintain',
+              target_weight: 75,
+            }]);
+          } catch (insertErr) {
+            console.log('Perfil será criado quando configurar o banco');
+          }
+        }
+      } catch (profileErr) {
+        console.log('Usando perfil padrão');
+        const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário';
+        setUserProfile(prev => ({ ...prev, name: userName }));
+      }
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Erro na autenticação:', err);
+      router.push('/auth');
+    }
+  };
+
+  const handleSaveProfile = async (profile: UserProfile) => {
+    if (!userId) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          user_id: userId,
+          name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          weight: profile.weight,
+          height: profile.height,
+          activity_level: profile.activityLevel,
+          goal: profile.goal,
+          target_weight: profile.targetWeight,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+
+      setUserProfile(profile);
+      alert('Perfil salvo com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar perfil:', err);
+      alert('Erro ao salvar perfil. Verifique se o banco está configurado.');
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/auth');
   };
 
   if (isLoading) {
@@ -60,7 +147,7 @@ export default function FitIAApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
       
       <main className="pt-24 md:pt-20 pb-8 px-4 max-w-7xl mx-auto">
         {activeTab === 'home' && (
@@ -192,9 +279,9 @@ export default function FitIAApp() {
           </div>
         )}
 
-        {activeTab === 'nutrition' && <NutritionPlanComponent profile={userProfile} />}
-        {activeTab === 'workout' && <WorkoutGenerator profile={userProfile} />}
-        {activeTab === 'progress' && <ProgressDashboard profile={userProfile} />}
+        {activeTab === 'nutrition' && <NutritionPlanComponent profile={userProfile} userId={userId} />}
+        {activeTab === 'workout' && <WorkoutGenerator profile={userProfile} userId={userId} />}
+        {activeTab === 'progress' && <ProgressDashboard profile={userProfile} userId={userId} />}
         {activeTab === 'profile' && (
           <UserProfileComponent profile={userProfile} onSave={handleSaveProfile} />
         )}

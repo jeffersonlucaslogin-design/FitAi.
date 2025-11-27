@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
     const { imageUrl } = await request.json();
@@ -23,6 +19,11 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Instancia o cliente OpenAI dentro da função para evitar erro no build
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     // Analisa a imagem usando GPT-4 Vision
     const response = await openai.chat.completions.create({

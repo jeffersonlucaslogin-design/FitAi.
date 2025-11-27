@@ -2,16 +2,14 @@
 
 import { Home, Utensils, Dumbbell, TrendingUp, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
 
 interface NavbarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onLogout: () => void;
 }
 
-export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
-  const router = useRouter();
-
+export default function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps) {
   const tabs = [
     { id: 'home', label: 'Início', icon: Home },
     { id: 'nutrition', label: 'Nutrição', icon: Utensils },
@@ -19,12 +17,6 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
     { id: 'progress', label: 'Progresso', icon: TrendingUp },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
-
-  const handleLogout = () => {
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userProfile');
-    router.push('/auth');
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg">
@@ -61,7 +53,7 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleLogout}
+              onClick={onLogout}
               className="text-white hover:bg-white/20 ml-2"
               title="Sair"
             >
@@ -90,7 +82,7 @@ export default function Navbar({ activeTab, onTabChange }: NavbarProps) {
             );
           })}
           <button
-            onClick={handleLogout}
+            onClick={onLogout}
             className="flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-all text-white/70 hover:text-white"
             title="Sair"
           >
